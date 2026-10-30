@@ -6,6 +6,8 @@ import { WebhookService } from '@/services/whatsapp/webhook.service';
  * GET /api/webhooks/whatsapp
  * Meta WhatsApp Cloud API Verification Endpoint
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
@@ -13,23 +15,35 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  // Fetch configured verification token from database or env
-  const connection = await prisma.whatsAppConnection.findFirst();
-  const storedVerifyToken = connection?.webhookVerifyToken || process.env.META_WEBHOOK_VERIFY_TOKEN;
+  let storedVerifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN || 'whcrm_verify_9f7d3a2c8b6e4a1f';
 
-  if (mode === 'subscribe' && token === storedVerifyToken) {
-    if (connection) {
-      await prisma.whatsAppConnection.update({
-        where: { id: connection.id },
-        data: { webhookStatus: 'VERIFIED' },
-      });
+  try {
+    const connection = await prisma.whatsAppConnection.findFirst();
+    if (connection?.webhookVerifyToken) {
+      storedVerifyToken = connection.webhookVerifyToken;
     }
 
-    // Return RAW hub.challenge text with HTTP 200 (Do NOT return JSON)
-    return new NextResponse(challenge, {
-      status: 200,
-      headers: { 'Content-Type': 'text/plain' },
-    });
+    if (mode === 'subscribe' && token === storedVerifyToken) {
+      if (connection) {
+        await prisma.whatsAppConnection.update({
+          where: { id: connection.id },
+          data: { webhookStatus: 'VERIFIED' },
+        }).catch(() => null);
+      }
+
+      return new NextResponse(challenge, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
+  } catch (err) {
+    // If DB is unreachable during Meta verification, verify against ENV token
+    if (mode === 'subscribe' && token === storedVerifyToken) {
+      return new NextResponse(challenge, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
   }
 
   // Token mismatch
