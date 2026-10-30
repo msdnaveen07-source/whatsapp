@@ -82,53 +82,78 @@ export class TemplatesService {
       variableExamples,
     } = input;
 
-    // 1. Create Template in Database
-    const template = await prisma.template.create({
-      data: {
-        organizationId,
-        name,
-        language,
-        category,
-        status: 'PENDING',
-        components: {
-          create: [
-            ...(headerType !== 'NONE'
-              ? [
-                  {
-                    type: 'HEADER',
-                    format: headerType,
-                    text: headerType === 'TEXT' ? headerText : null,
-                  },
-                ]
-              : []),
-            {
-              type: 'BODY',
-              text: bodyText,
-              example: variableExamples ? JSON.stringify(variableExamples) : null,
-            },
-            ...(footerText
-              ? [
-                  {
-                    type: 'FOOTER',
-                    text: footerText,
-                  },
-                ]
-              : []),
-            ...(buttons && buttons.length > 0
-              ? [
-                  {
-                    type: 'BUTTONS',
-                    buttons: JSON.stringify(buttons),
-                  },
-                ]
-              : []),
-          ],
-        },
-      },
-      include: {
-        components: true,
-      },
+    // 1. Create or Update (Upsert) Template in Database
+    const existing = await prisma.template.findFirst({
+      where: { organizationId, name, language },
     });
+
+    const componentsToCreate = [
+      ...(headerType !== 'NONE'
+        ? [
+            {
+              type: 'HEADER',
+              format: headerType,
+              text: headerType === 'TEXT' ? headerText : null,
+            },
+          ]
+        : []),
+      {
+        type: 'BODY',
+        text: bodyText,
+        example: variableExamples ? JSON.stringify(variableExamples) : null,
+      },
+      ...(footerText
+        ? [
+            {
+              type: 'FOOTER',
+              text: footerText,
+            },
+          ]
+        : []),
+      ...(buttons && buttons.length > 0
+        ? [
+            {
+              type: 'BUTTONS',
+              buttons: JSON.stringify(buttons),
+            },
+          ]
+        : []),
+    ];
+
+    let template;
+    if (existing) {
+      // Clean old components and update
+      await prisma.templateComponent.deleteMany({
+        where: { templateId: existing.id },
+      });
+
+      template = await prisma.template.update({
+        where: { id: existing.id },
+        data: {
+          category,
+          status: 'PENDING',
+          rejectionReason: null,
+          components: {
+            create: componentsToCreate,
+          },
+        },
+        include: { components: true },
+      });
+    } else {
+      template = await prisma.template.create({
+        data: {
+          organizationId,
+          name,
+          language,
+          category,
+          status: 'PENDING',
+          components: {
+            create: componentsToCreate,
+          },
+        },
+        include: { components: true },
+      });
+    }
 
     const isMock = process.env.WHATSAPP_MOCK_MODE === 'true';
 
