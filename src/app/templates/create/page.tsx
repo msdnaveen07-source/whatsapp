@@ -128,7 +128,11 @@ export default function CreateTemplatePage() {
         throw new Error(data.error || 'Failed to create template');
       }
 
-      alert('Template submitted to Meta Graph API for review!');
+      if (data.metaSubmitted) {
+        alert('🎉 Template submitted directly to Meta WhatsApp Cloud API for review! Status: PENDING');
+      } else {
+        alert(`⚠️ ${data.message || 'Template saved locally as DRAFT.'}\n\nReason: ${data.warning || 'Meta Access Token is expired or invalid'}`);
+      }
       router.push('/templates');
     } catch (err: any) {
       setErrorMsg(err.message);

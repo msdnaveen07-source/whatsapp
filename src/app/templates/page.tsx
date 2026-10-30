@@ -165,7 +165,7 @@ export default function TemplatesPage() {
                     <p className="whitespace-pre-wrap leading-relaxed">{bodyComp?.text}</p>
                   </div>
 
-                  {/* Rejection Alert Box */}
+                  {/* Rejection or Draft Alert Box */}
                   {tpl.status === 'REJECTED' && tpl.rejectionReason && (
                     <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-800 space-y-1">
                       <div className="flex items-center gap-1.5 font-bold text-rose-900">
@@ -173,6 +173,16 @@ export default function TemplatesPage() {
                         Meta Rejection Reason:
                       </div>
                       <p className="text-[11px] text-rose-700">{tpl.rejectionReason}</p>
+                    </div>
+                  )}
+
+                  {tpl.status === 'DRAFT' && tpl.rejectionReason && (
+                    <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                        Submission Notice:
+                      </div>
+                      <p className="text-[11px] text-amber-700">{tpl.rejectionReason}</p>
                     </div>
                   )}
                 </div>
