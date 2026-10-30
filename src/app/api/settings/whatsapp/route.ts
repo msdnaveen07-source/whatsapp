@@ -66,11 +66,13 @@ export async function POST(request: NextRequest) {
       webhookVerifyToken: webhookVerifyToken || 'whcrm_verify_9f7d3a2c8b6e4a1f',
     };
 
-    // Only update sensitive tokens if provided (and not masked stars)
-    if (appSecret && !appSecret.includes('••••')) {
+    // Only update sensitive tokens if provided (and not masked stars/dots)
+    const isMaskedVal = (v?: string) => !v || v.includes('•') || v.includes('***');
+
+    if (!isMaskedVal(appSecret)) {
       updateData.appSecret = appSecret;
     }
-    if (accessToken && !accessToken.includes('••••')) {
+    if (!isMaskedVal(accessToken)) {
       updateData.accessToken = accessToken;
     }
 

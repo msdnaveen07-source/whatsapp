@@ -38,6 +38,8 @@ export default function WhatsAppSettingsPage() {
         setForm(prev => ({
           ...prev,
           ...data.connection,
+          accessToken: '', // Keep empty so user never accidentally overwrites saved token with dots
+          appSecret: '',
         }));
         setConnectionStatus(data.connection.status || 'CONNECTED');
       }
@@ -261,10 +263,12 @@ export default function WhatsAppSettingsPage() {
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">META_ACCESS_TOKEN (System User Token)</label>
+            <label className="text-xs font-semibold text-slate-700 block mb-1">
+              META_ACCESS_TOKEN (Permanent System User Token)
+            </label>
             <input
               type="password"
-              placeholder="EAAG..."
+              placeholder={form.wabaId ? "Token is securely saved in database (leave blank to keep existing)" : "EAAG..."}
               value={form.accessToken || ''}
               onChange={e => setForm({ ...form, accessToken: e.target.value })}
               className="w-full p-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono"
