@@ -53,7 +53,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, user: { id: user.id, email: user.email, name: user.name } });
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        organization: { name: org.name, slug: org.slug },
+      },
+    });
   } catch (err: any) {
     console.error('Registration error:', err);
     return NextResponse.json({ error: err.message || 'Registration failed' }, { status: 500 });
