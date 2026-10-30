@@ -8,7 +8,9 @@ export async function POST(request: NextRequest) {
     const org = await prisma.organization.findFirst();
     if (!org) return NextResponse.json({ error: 'No organization found' }, { status: 404 });
 
-    const credentials = {
+    const isMasked = (str?: string) => !str || str.includes('•') || str.includes('***');
+
+    let resolvedCreds: any = {
       appId: body.appId || undefined,
       appSecret: body.appSecret || undefined,
       accessToken: body.accessToken || undefined,
@@ -17,15 +19,30 @@ export async function POST(request: NextRequest) {
       graphApiVersion: body.graphApiVersion || 'v21.0',
     };
 
-    const activeCreds = body.accessToken
-      ? credentials
+    // If access token has masked bullet characters, load actual token from database
+    if (isMasked(resolvedCreds.accessToken)) {
+      const dbCreds = await WhatsAppService.getCredentials(org.id);
+      if (dbCreds?.accessToken) {
+        resolvedCreds.accessToken = dbCreds.accessToken;
+      }
+    }
+
+    if (isMasked(resolvedCreds.appSecret)) {
+      const dbCreds = await WhatsAppService.getCredentials(org.id);
+      if (dbCreds?.appSecret) {
+        resolvedCreds.appSecret = dbCreds.appSecret;
+      }
+    }
+
+    const activeCreds = resolvedCreds.accessToken
+      ? resolvedCreds
       : await WhatsAppService.getCredentials(org.id);
 
-    if (!activeCreds) {
+    if (!activeCreds || isMasked(activeCreds.accessToken)) {
       return NextResponse.json({
         success: false,
         status: 'CONFIG_ERROR',
-        message: 'No WhatsApp credentials configured.',
+        message: 'Please enter a valid Meta Access Token (do not use placeholder dots).',
       });
     }
 
