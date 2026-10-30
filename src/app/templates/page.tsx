@@ -179,15 +179,23 @@ export default function TemplatesPage() {
 
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                   <span>Created {new Date(tpl.createdAt).toLocaleDateString()}</span>
-                  <Link
-                    href={`/campaigns/create?templateId=${tpl.id}`}
-                    className={`font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 ${
-                      tpl.status !== 'APPROVED' ? 'opacity-40 pointer-events-none' : ''
-                    }`}
-                  >
-                    <span>Use in Campaign</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/templates/create?editId=${tpl.id}`}
+                      className="font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md text-xs transition"
+                    >
+                      Edit
+                    </Link>
+                    <Link
+                      href={`/campaigns/create?templateId=${tpl.id}`}
+                      className={`font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 ${
+                        tpl.status !== 'APPROVED' ? 'opacity-40 pointer-events-none' : ''
+                      }`}
+                    >
+                      <span>Use in Campaign</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

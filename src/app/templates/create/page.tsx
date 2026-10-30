@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   FileCode2,
   Smartphone,
@@ -16,6 +16,8 @@ import {
 
 export default function CreateTemplatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('editId');
 
   const [name, setName] = useState('');
   const [language, setLanguage] = useState('en_US');
@@ -44,6 +46,43 @@ export default function CreateTemplatePage() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // If editId is provided, fetch existing template and populate form
+  React.useEffect(() => {
+    if (!editId) return;
+    fetch('/api/whatsapp/templates')
+      .then(r => r.json())
+      .then(d => {
+        const found = (d.templates || []).find((t: any) => t.id === editId);
+        if (found) {
+          setName(found.name);
+          setLanguage(found.language);
+          setCategory(found.category);
+
+          const bodyComp = found.components.find((c: any) => c.type === 'BODY');
+          if (bodyComp?.text) setBodyText(bodyComp.text);
+
+          const headerComp = found.components.find((c: any) => c.type === 'HEADER');
+          if (headerComp) {
+            setHeaderType(headerComp.format || 'TEXT');
+            setHeaderText(headerComp.text || '');
+          }
+
+          const footerComp = found.components.find((c: any) => c.type === 'FOOTER');
+          if (footerComp?.text) setFooterText(footerComp.text);
+
+          const btnComp = found.components.find((c: any) => c.type === 'BUTTONS');
+          if (btnComp?.buttons) {
+            try {
+              setButtons(JSON.parse(btnComp.buttons));
+            } catch {
+              // ignore
+            }
+          }
+        }
+      })
+      .catch(console.error);
+  }, [editId]);
 
   // Extract variables dynamically from body text
   const detectedVariables = Array.from(bodyText.matchAll(/\{\{(\d+)\}\}/g)).map(m => m[1]);

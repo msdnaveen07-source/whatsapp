@@ -245,7 +245,7 @@ export class TemplatesService {
     if (!response.ok || data.error) {
       let metaErr = data.error?.message || 'Meta API template submission failed.';
       if (data.error?.code === 190 || metaErr.includes('decrypted') || metaErr.includes('token')) {
-        metaErr = 'Your Meta WhatsApp Access Token is invalid or expired. Please update it in Settings > WhatsApp Setup.';
+        metaErr = 'Your Meta WhatsApp Access Token is invalid or expired. Saved as Draft!';
       }
 
       await prisma.template.update({
@@ -255,7 +255,13 @@ export class TemplatesService {
           rejectionReason: metaErr,
         },
       });
-      throw new Error(metaErr);
+
+      return {
+        template,
+        metaSubmitted: false,
+        warning: metaErr,
+        message: 'Template saved locally as Draft! To sync with Meta WhatsApp, please update your Meta Access Token and WABA ID in Settings > WhatsApp Setup.',
+      };
     }
 
     await prisma.template.update({
