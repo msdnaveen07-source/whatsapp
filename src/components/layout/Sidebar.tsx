@@ -19,6 +19,20 @@ import {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [user, setUser] = React.useState<{ name: string; email: string; organization?: { name: string } } | null>(null);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('crm_user');
+      if (stored) {
+        try {
+          setUser(JSON.parse(stored));
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, []);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -130,15 +144,26 @@ export function Sidebar() {
 
         <div className="flex items-center justify-between pt-1 text-slate-400 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white text-xs">
-              SC
+            <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white text-xs uppercase">
+              {user?.name ? user.name.substring(0, 2) : 'AU'}
             </div>
             <div>
-              <p className="font-medium text-slate-200 text-xs leading-none">Sarah Connor</p>
-              <p className="text-[10px] text-slate-400">Acme Global</p>
+              <p className="font-medium text-slate-200 text-xs leading-none">
+                {user?.name || 'Avit User'}
+              </p>
+              <p className="text-[10px] text-slate-400">
+                {user?.organization?.name || 'GrowNoww'}
+              </p>
             </div>
           </div>
-          <Link href="/login" className="hover:text-white p-1" title="Logout">
+          <Link
+            href="/login"
+            onClick={() => {
+              if (typeof window !== 'undefined') localStorage.removeItem('crm_user');
+            }}
+            className="hover:text-white p-1"
+            title="Logout"
+          >
             <LogOut className="w-4 h-4" />
           </Link>
         </div>

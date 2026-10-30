@@ -27,6 +27,9 @@ export default function LoginPage() {
       if (!res.ok) {
         throw new Error(data.error || 'Login failed');
       }
+      if (typeof window !== 'undefined' && data.user) {
+        localStorage.setItem('crm_user', JSON.stringify(data.user));
+      }
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);

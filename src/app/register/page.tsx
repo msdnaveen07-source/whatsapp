@@ -29,6 +29,9 @@ export default function RegisterPage() {
       if (!res.ok) {
         throw new Error(data.error || 'Registration failed');
       }
+      if (typeof window !== 'undefined' && data.user) {
+        localStorage.setItem('crm_user', JSON.stringify(data.user));
+      }
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message);
