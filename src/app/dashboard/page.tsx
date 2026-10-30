@@ -37,56 +37,62 @@ export default async function DashboardPage() {
     const orgId = org?.id || '';
 
     if (orgId) {
-      totalContacts = await prisma.contact.count({ where: { organizationId: orgId } });
-      activeConversations = await prisma.conversation.count({
-        where: { organizationId: orgId, status: 'OPEN' },
-      });
-      const unreadAgg = await prisma.conversation.aggregate({
-        where: { organizationId: orgId },
-        _sum: { unreadCount: true },
-      });
-      if (unreadAgg._sum.unreadCount) {
-        unreadMessagesCount = { _sum: { unreadCount: unreadAgg._sum.unreadCount } };
-      }
-
-      messagesSent = await prisma.message.count({
-        where: { organizationId: orgId, direction: 'OUTBOUND' },
-      });
-      messagesReceived = await prisma.message.count({
-        where: { organizationId: orgId, direction: 'INBOUND' },
-      });
-
-      deliveredCount = await prisma.message.count({
-        where: { organizationId: orgId, status: 'DELIVERED' },
-      });
-      readCount = await prisma.message.count({
-        where: { organizationId: orgId, status: 'READ' },
-      });
-      failedCount = await prisma.message.count({
-        where: { organizationId: orgId, status: 'FAILED' },
-      });
-
-      connection = await prisma.whatsAppConnection.findUnique({
-        where: { organizationId: orgId },
-      });
-
-      recentConversations = await prisma.conversation.findMany({
-        where: { organizationId: orgId },
-        include: {
-          contact: true,
-          messages: {
-            take: 1,
-            orderBy: { createdAt: 'desc' },
+      const [
+        totalContactsRes,
+        activeConversationsRes,
+        unreadAggRes,
+        messagesSentRes,
+        messagesReceivedRes,
+        deliveredCountRes,
+        readCountRes,
+        failedCountRes,
+        connectionRes,
+        recentConversationsRes,
+        templatesCountRes,
+        approvedTemplatesRes,
+      ] = await Promise.all([
+        prisma.contact.count({ where: { organizationId: orgId } }),
+        prisma.conversation.count({ where: { organizationId: orgId, status: 'OPEN' } }),
+        prisma.conversation.aggregate({
+          where: { organizationId: orgId },
+          _sum: { unreadCount: true },
+        }),
+        prisma.message.count({ where: { organizationId: orgId, direction: 'OUTBOUND' } }),
+        prisma.message.count({ where: { organizationId: orgId, direction: 'INBOUND' } }),
+        prisma.message.count({ where: { organizationId: orgId, status: 'DELIVERED' } }),
+        prisma.message.count({ where: { organizationId: orgId, status: 'READ' } }),
+        prisma.message.count({ where: { organizationId: orgId, status: 'FAILED' } }),
+        prisma.whatsAppConnection.findUnique({ where: { organizationId: orgId } }),
+        prisma.conversation.findMany({
+          where: { organizationId: orgId },
+          include: {
+            contact: true,
+            messages: {
+              take: 1,
+              orderBy: { createdAt: 'desc' },
+            },
           },
-        },
-        take: 5,
-        orderBy: { lastMessageAt: 'desc' },
-      });
+          take: 5,
+          orderBy: { lastMessageAt: 'desc' },
+        }),
+        prisma.template.count({ where: { organizationId: orgId } }),
+        prisma.template.count({ where: { organizationId: orgId, status: 'APPROVED' } }),
+      ]);
 
-      templatesCount = await prisma.template.count({ where: { organizationId: orgId } });
-      approvedTemplates = await prisma.template.count({
-        where: { organizationId: orgId, status: 'APPROVED' },
-      });
+      totalContacts = totalContactsRes;
+      activeConversations = activeConversationsRes;
+      if (unreadAggRes._sum.unreadCount) {
+        unreadMessagesCount = { _sum: { unreadCount: unreadAggRes._sum.unreadCount } };
+      }
+      messagesSent = messagesSentRes;
+      messagesReceived = messagesReceivedRes;
+      deliveredCount = deliveredCountRes;
+      readCount = readCountRes;
+      failedCount = failedCountRes;
+      connection = connectionRes;
+      recentConversations = recentConversationsRes;
+      templatesCount = templatesCountRes;
+      approvedTemplates = approvedTemplatesRes;
     }
   } catch (error) {
     console.error('Error loading dashboard data from database:', error);
