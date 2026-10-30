@@ -149,8 +149,23 @@ export class TemplatesService {
     const credentials = await WhatsAppService.getCredentials(organizationId);
     const { accessToken, wabaId, graphApiVersion = 'v21.0' } = credentials || {};
 
-    if (!accessToken || !wabaId) {
-      throw new Error('Missing Meta Access Token or WABA ID in settings.');
+    const isTokenUnset = !accessToken || accessToken.includes('mock') || accessToken.includes('••••') || !wabaId || wabaId.includes('100987654321098');
+
+    if (isTokenUnset) {
+      // Create local template as DRAFT so clients can create and design templates even before connecting Meta API
+      await prisma.template.update({
+        where: { id: template.id },
+        data: {
+          status: 'DRAFT',
+          metaTemplateId: `draft_${Date.now()}`,
+        },
+      });
+
+      return {
+        template,
+        metaSubmitted: false,
+        message: 'Template saved as Draft! To sync with WhatsApp, please configure your Meta Access Token and WABA ID in Settings > WhatsApp Setup.',
+      };
     }
 
     // Build Meta components array
@@ -228,11 +243,15 @@ export class TemplatesService {
     const data = await response.json();
 
     if (!response.ok || data.error) {
-      const metaErr = data.error?.message || 'Meta API template submission failed.';
+      let metaErr = data.error?.message || 'Meta API template submission failed.';
+      if (data.error?.code === 190 || metaErr.includes('decrypted') || metaErr.includes('token')) {
+        metaErr = 'Your Meta WhatsApp Access Token is invalid or expired. Please update it in Settings > WhatsApp Setup.';
+      }
+
       await prisma.template.update({
         where: { id: template.id },
         data: {
-          status: 'REJECTED',
+          status: 'DRAFT',
           rejectionReason: metaErr,
         },
       });
