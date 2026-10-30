@@ -59,8 +59,8 @@ model WhatsAppConnection {
   id                 String       @id @default(uuid())
   organizationId     String       @unique
   appId              String?
-  appSecret          String?
-  accessToken        String?
+  appSecret          String?      @db.Text
+  accessToken        String?      @db.Text
   wabaId             String?
   phoneNumberId      String?
   phoneNumber        String?
