@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const connection = await prisma.whatsAppConnection.findFirst();
   const verifyToken = connection?.webhookVerifyToken || process.env.META_WEBHOOK_VERIFY_TOKEN;
