@@ -268,7 +268,37 @@ export class TemplatesService {
     const data = await response.json();
 
     if (!response.ok || data.error) {
-      let metaErr = data.error?.message || 'Meta API template submission failed.';
+      // Check if template already exists on Meta (error_subcode 2388024: Content in this language already exists)
+      if (data.error?.error_subcode === 2388024 || data.error?.message?.includes('already exists')) {
+        try {
+          const fetchExistingUrl = `https://graph.facebook.com/${graphApiVersion}/${wabaId}/message_templates?name=${name}`;
+          const checkRes = await fetch(fetchExistingUrl, {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          const checkData = await checkRes.json();
+          const metaMatch = checkData.data?.find((t: any) => t.name === name && t.language === language);
+          if (metaMatch) {
+            const updated = await prisma.template.update({
+              where: { id: template.id },
+              data: {
+                metaTemplateId: metaMatch.id,
+                status: metaMatch.status || 'PENDING',
+                rejectionReason: null,
+              },
+            });
+            return {
+              template: updated,
+              metaSubmitted: true,
+              metaId: metaMatch.id,
+              message: `Template is already submitted to Meta! Status: ${metaMatch.status}`,
+            };
+          }
+        } catch (fetchErr) {
+          console.warn('Could not sync existing meta template:', fetchErr);
+        }
+      }
+
+      let metaErr = data.error?.error_user_msg || data.error?.message || 'Meta API template submission failed.';
       if (data.error?.code === 190 || metaErr.includes('decrypted') || metaErr.includes('token')) {
         metaErr = 'Your Meta WhatsApp Access Token is invalid or expired. Saved as Draft!';
       }
