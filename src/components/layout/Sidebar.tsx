@@ -44,6 +44,7 @@ export function Sidebar() {
 
   const settingsSub = [
     { name: 'WhatsApp Setup', href: '/settings/whatsapp', icon: ShieldCheck },
+    { name: 'Automation Bot', href: '/settings/automation', icon: Sparkles },
     { name: 'Webhook Diagnostics', href: '/settings/webhooks', icon: Activity },
     { name: 'API Logs', href: '/settings/api-logs', icon: Terminal },
     { name: 'Users & Roles', href: '/settings/users', icon: Settings },

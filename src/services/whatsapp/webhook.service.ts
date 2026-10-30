@@ -249,32 +249,37 @@ export class WebhookService {
 
     let autoReplyMessage: string | null = null;
 
-    // 1. Try Gemini AI Smart Response first
+    // 1. Check custom Keyword Bot rules first (instant & reliable)
     try {
-      const { GeminiService } = await import('../ai/gemini.service');
-      const aiReply = await GeminiService.generateReply({
-        incomingMessage: incomingText,
-      });
-
-      if (aiReply) {
-        autoReplyMessage = aiReply;
+      const { AutomationConfigService } = await import('./automation.service');
+      const keywordReply = AutomationConfigService.matchReply(incomingText);
+      if (keywordReply) {
+        autoReplyMessage = keywordReply;
       }
     } catch (err) {
-      console.warn('Gemini AI fallback triggered:', err);
+      console.warn('AutomationConfigService error:', err);
     }
 
-    // 2. Fallback to Keyword Bot if AI key is not set or returns null
+    // 2. Try Gemini AI Smart Response if no specific keyword matched
+    if (!autoReplyMessage) {
+      try {
+        const { GeminiService } = await import('../ai/gemini.service');
+        const aiReply = await GeminiService.generateReply({
+          incomingMessage: incomingText,
+        });
+
+        if (aiReply) {
+          autoReplyMessage = aiReply;
+        }
+      } catch (err) {
+        console.warn('Gemini AI fallback triggered:', err);
+      }
+    }
+
+    // 3. Fallback to default greeting if empty
     if (!autoReplyMessage) {
       if (cleanText === 'hi' || cleanText === 'hello' || cleanText === 'start' || cleanText === 'menu' || cleanText === 'vanakkam') {
         autoReplyMessage = `👋 Welcome to WhatsApp CRM Service!\n\nHow can we help you today? Reply with a number:\n1️⃣ View Pricing & Plans\n2️⃣ Request Product Demo\n3️⃣ Download Catalog / Brochure\n4️⃣ Talk to Support Agent`;
-      } else if (cleanText === '1' || cleanText.includes('price') || cleanText.includes('plan')) {
-        autoReplyMessage = `💰 *Pricing & Plans*\n\n• Essential Plan: ₹2,000/sq.ft\n• Premium Plan: ₹2,150/sq.ft\n• Elite Plan: ₹2,300/sq.ft\n\nReply DEMO to get a live demo callback!`;
-      } else if (cleanText === '2' || cleanText.includes('demo')) {
-        autoReplyMessage = `🎉 Thank you! Our sales specialist has been notified and will call you shortly. Reply MENU to return to main options.`;
-      } else if (cleanText === '3' || cleanText.includes('catalog') || cleanText.includes('brochure')) {
-        autoReplyMessage = `📄 *Catalog Download*\n\nYou can view and download our complete service catalog here: https://yourdomain.com/download-brochure.php\n\nReply MENU to see all options.`;
-      } else if (cleanText === '4' || cleanText.includes('agent') || cleanText.includes('support')) {
-        autoReplyMessage = `🧑‍💻 An active support agent has been assigned to your chat. Please type your query below!`;
       }
     }
 
