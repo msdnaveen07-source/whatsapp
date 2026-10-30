@@ -375,6 +375,56 @@ export class TemplatesService {
           },
         });
         updatedCount++;
+      } else {
+        // Automatically import template from Meta into our database!
+        const bodyComp = metaTpl.components?.find((c: any) => c.type === 'BODY');
+        const headerComp = metaTpl.components?.find((c: any) => c.type === 'HEADER');
+        const footerComp = metaTpl.components?.find((c: any) => c.type === 'FOOTER');
+        const buttonsComp = metaTpl.components?.find((c: any) => c.type === 'BUTTONS');
+
+        const componentsToCreate: any[] = [];
+        if (headerComp) {
+          componentsToCreate.push({
+            type: 'HEADER',
+            format: headerComp.format || 'TEXT',
+            text: headerComp.text || null,
+          });
+        }
+        if (bodyComp) {
+          componentsToCreate.push({
+            type: 'BODY',
+            text: bodyComp.text || '',
+            example: bodyComp.example ? JSON.stringify(bodyComp.example) : null,
+          });
+        }
+        if (footerComp) {
+          componentsToCreate.push({
+            type: 'FOOTER',
+            text: footerComp.text || null,
+          });
+        }
+        if (buttonsComp) {
+          componentsToCreate.push({
+            type: 'BUTTONS',
+            buttons: JSON.stringify(buttonsComp.buttons || []),
+          });
+        }
+
+        await prisma.template.create({
+          data: {
+            organizationId,
+            name: metaTpl.name,
+            language: metaTpl.language,
+            category: metaTpl.category || 'MARKETING',
+            status: metaTpl.status || 'APPROVED',
+            metaTemplateId: metaTpl.id,
+            rejectionReason: metaTpl.reason || null,
+            components: {
+              create: componentsToCreate,
+            },
+          },
+        });
+        updatedCount++;
       }
     }
 
