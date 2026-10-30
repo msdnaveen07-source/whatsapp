@@ -18,57 +18,79 @@ import {
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const org = await prisma.organization.findFirst();
-  const orgId = org?.id || '';
+  let org: any = null;
+  let totalContacts = 0;
+  let activeConversations = 0;
+  let unreadMessagesCount = { _sum: { unreadCount: 0 } };
+  let messagesSent = 0;
+  let messagesReceived = 0;
+  let deliveredCount = 0;
+  let readCount = 0;
+  let failedCount = 0;
+  let connection: any = null;
+  let recentConversations: any[] = [];
+  let templatesCount = 0;
+  let approvedTemplates = 0;
 
-  // Calculate KPIs
-  const totalContacts = await prisma.contact.count({ where: { organizationId: orgId } });
-  const activeConversations = await prisma.conversation.count({
-    where: { organizationId: orgId, status: 'OPEN' },
-  });
-  const unreadMessagesCount = await prisma.conversation.aggregate({
-    where: { organizationId: orgId },
-    _sum: { unreadCount: true },
-  });
+  try {
+    org = await prisma.organization.findFirst();
+    const orgId = org?.id || '';
 
-  const messagesSent = await prisma.message.count({
-    where: { organizationId: orgId, direction: 'OUTBOUND' },
-  });
-  const messagesReceived = await prisma.message.count({
-    where: { organizationId: orgId, direction: 'INBOUND' },
-  });
+    if (orgId) {
+      totalContacts = await prisma.contact.count({ where: { organizationId: orgId } });
+      activeConversations = await prisma.conversation.count({
+        where: { organizationId: orgId, status: 'OPEN' },
+      });
+      const unreadAgg = await prisma.conversation.aggregate({
+        where: { organizationId: orgId },
+        _sum: { unreadCount: true },
+      });
+      if (unreadAgg._sum.unreadCount) {
+        unreadMessagesCount = { _sum: { unreadCount: unreadAgg._sum.unreadCount } };
+      }
 
-  const deliveredCount = await prisma.message.count({
-    where: { organizationId: orgId, status: 'DELIVERED' },
-  });
-  const readCount = await prisma.message.count({
-    where: { organizationId: orgId, status: 'READ' },
-  });
-  const failedCount = await prisma.message.count({
-    where: { organizationId: orgId, status: 'FAILED' },
-  });
+      messagesSent = await prisma.message.count({
+        where: { organizationId: orgId, direction: 'OUTBOUND' },
+      });
+      messagesReceived = await prisma.message.count({
+        where: { organizationId: orgId, direction: 'INBOUND' },
+      });
 
-  const connection = await prisma.whatsAppConnection.findUnique({
-    where: { organizationId: orgId },
-  });
+      deliveredCount = await prisma.message.count({
+        where: { organizationId: orgId, status: 'DELIVERED' },
+      });
+      readCount = await prisma.message.count({
+        where: { organizationId: orgId, status: 'READ' },
+      });
+      failedCount = await prisma.message.count({
+        where: { organizationId: orgId, status: 'FAILED' },
+      });
 
-  const recentConversations = await prisma.conversation.findMany({
-    where: { organizationId: orgId },
-    include: {
-      contact: true,
-      messages: {
-        take: 1,
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-    take: 5,
-    orderBy: { lastMessageAt: 'desc' },
-  });
+      connection = await prisma.whatsAppConnection.findUnique({
+        where: { organizationId: orgId },
+      });
 
-  const templatesCount = await prisma.template.count({ where: { organizationId: orgId } });
-  const approvedTemplates = await prisma.template.count({
-    where: { organizationId: orgId, status: 'APPROVED' },
-  });
+      recentConversations = await prisma.conversation.findMany({
+        where: { organizationId: orgId },
+        include: {
+          contact: true,
+          messages: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+          },
+        },
+        take: 5,
+        orderBy: { lastMessageAt: 'desc' },
+      });
+
+      templatesCount = await prisma.template.count({ where: { organizationId: orgId } });
+      approvedTemplates = await prisma.template.count({
+        where: { organizationId: orgId, status: 'APPROVED' },
+      });
+    }
+  } catch (error) {
+    console.error('Error loading dashboard data from database:', error);
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
